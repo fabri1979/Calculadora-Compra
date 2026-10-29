@@ -248,7 +248,7 @@ input[type="date"].fecha-hidden{position:absolute;opacity:0;pointer-events:none;
       <div class="field-hint">Cuota máxima disponible asignada al cliente en la plataforma de crédito</div>
       <div class="input-wrap">
         <span class="pfx">$</span>
-        <input type="text" id="cuota" placeholder="Ej: 258.50"
+        <input type="text" id="cuota" placeholder="Ej: 258.50" inputmode="decimal"
                class="with-pfx" autocomplete="off" autocorrect="off" autocapitalize="off">
       </div>
       <div class="field-err" id="err-cuota" hidden></div>
@@ -353,6 +353,12 @@ function fechaValida(dia, mes, anio) {
 /* ── FECHA: tres inputs independientes con auto-avance ── */
 const fAnio = document.getElementById('f-anio');
 const fMes  = document.getElementById('f-mes');
+// iPhone fix: inputmode="decimal" no muestra punto en iOS → usar teclado completo
+if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+  const cuotaInput = document.getElementById('cuota');
+  cuotaInput.removeAttribute('inputmode');
+}
+
 const fDia  = document.getElementById('f-dia');
 const calNac = document.getElementById('nacimiento-cal');
 
