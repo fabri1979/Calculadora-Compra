@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kotta · Calculadora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --coral:     #F0512A;
+  --coral-dim: rgba(240,81,42,0.10);
+  --teal:      #0B4455;
+  --sun:       #FFB830;
+  --sun-dim:   rgba(255,184,48,0.18);
+  --ink:       #161820;
+  --stone:     #6B7280;
+  --mist:      #E2E6EA;
+  --snow:      #F7F8FA;
+  --white:     #FFFFFF;
+  --bg:        var(--white);
+  --bg-card:   var(--white);
+  --bg-input:  var(--snow);
+  --fg:        var(--ink);
+  --fg-sub:    var(--stone);
+  --border:    var(--mist);
+  --warn-bg:   var(--sun-dim);
+  --warn-fg:   #7A5500;
+  --err-bg:    rgba(240,81,42,0.09);
+  --err-fg:    var(--coral);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#111318; --bg-card:#1A1D24; --bg-input:#1F232C;
+    --fg:#EDF0F4; --fg-sub:#8B94A3; --border:#2A2F3A;
+    --warn-bg:rgba(255,184,48,0.14); --warn-fg:#F0C040;
+    --err-bg:rgba(240,81,42,0.14);  --err-fg:#FF7A5A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#111318; --bg-card:#1A1D24; --bg-input:#1F232C;
+  --fg:#EDF0F4; --fg-sub:#8B94A3; --border:#2A2F3A;
+  --warn-bg:rgba(255,184,48,0.14); --warn-fg:#F0C040;
+  --err-bg:rgba(240,81,42,0.14);  --err-fg:#FF7A5A;
+  color-scheme: dark;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--fg);font-size:16px;overflow-x:hidden}
+
+/* ── LAYOUT ── */
+.app-wrap{max-width:720px;margin:0 auto;padding:0 20px 40px}
+@media(min-width:600px){
+  .app-wrap{padding:0 32px 48px}
+  .form-card{padding:28px 24px}
+  .result-cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .result-cards-grid .result-card{margin-bottom:0}
+}
+@media(min-width:900px){
+  .app-wrap{padding:0 48px 56px}
+  .result-cards-grid{grid-template-columns:repeat(3,1fr)}
+}
+
+/* ── HEADER ── */
+.app-header{background:var(--teal);margin:0 -20px;padding:18px 24px;display:flex;align-items:center;gap:12px}
+@media(min-width:600px){.app-header{margin:0 -32px;padding:20px 32px}}
+@media(min-width:900px){.app-header{margin:0 -48px;padding:22px 48px}}
+.logo-mark{width:36px;height:36px;background:var(--coral);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-word{font-size:20px;font-weight:800;color:white;letter-spacing:-0.5px}
+.header-sep{width:1px;height:20px;background:rgba(255,255,255,0.2);flex-shrink:0}
+.header-title{font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);flex:1}
+.header-ver{font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:0.04em;white-space:nowrap}
+
+/* ── INTRO ── */
+.intro{padding:16px 2px 6px;font-size:14px;font-weight:500;color:var(--fg-sub);line-height:1.6}
+.intro strong{color:var(--fg)}
+
+/* ── FORM CARD ── */
+.form-card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:18px;padding:22px 18px;margin-top:16px}
+.form-title{font-size:15px;font-weight:700;color:var(--fg);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.form-title::before{content:'';display:block;width:4px;height:16px;background:var(--coral);border-radius:2px}
+.field{margin-bottom:16px}
+.field:last-of-type{margin-bottom:0}
+label{display:block;font-size:13px;font-weight:700;color:var(--fg);margin-bottom:5px}
+.field-hint{font-size:12px;color:var(--fg-sub);margin-bottom:8px;line-height:1.45}
+.field-err{font-size:12px;font-weight:600;color:var(--err-fg);margin-top:5px}
+
+/* ── INPUTS ── */
+.input-wrap{position:relative}
+.pfx{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:700;color:var(--fg-sub);pointer-events:none}
+input[type="number"],input[type="text"],input[type="date"]{
+  width:100%;background:var(--bg-input);border:1.5px solid var(--border);border-radius:12px;
+  padding:14px;font-family:inherit;font-size:17px;font-weight:600;color:var(--fg);
+  outline:none;-webkit-appearance:none;appearance:none;transition:border-color 0.15s
+}
+/* los sub-inputs de la caja fecha NO heredan width:100% ni los estilos de campo normal */
+.fecha-box input[type="text"]{
+  width:auto !important;background:transparent !important;border:none !important;
+  border-radius:0 !important;padding:13px 0 !important;
+  font-size:16px !important;-webkit-appearance:none;appearance:none;
+  outline:none;transition:none;
+}
+input.with-pfx{padding-left:28px}
+input:focus{border-color:var(--coral)}
+input.err{border-color:var(--coral);background:var(--err-bg)}
+/* quitar spinners en number */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type="number"]{-moz-appearance:textfield}
+
+/* ── CAMPO FECHA: caja con ancho fijo conteniendo tres sub-inputs ── */
+.fecha-outer{
+  display:inline-flex;align-items:center;gap:10px;
+}
+.fecha-box{
+  display:inline-flex;align-items:center;
+  background:var(--bg-input);border:1.5px solid var(--border);border-radius:12px;
+  overflow:hidden;transition:border-color 0.15s;
+  flex:none;
+  width:auto; /* se ajusta al contenido */
+}
+.fecha-box:focus-within{border-color:var(--coral)}
+.fecha-box.err{border-color:var(--coral);background:var(--err-bg)}
+.fecha-box input{
+  background:transparent;border:none;border-radius:0;outline:none;
+  padding:13px 0;font-family:inherit;font-size:16px;font-weight:600;
+  color:var(--fg);text-align:center;
+  -webkit-appearance:none;appearance:none;
+  flex:none; /* nunca crecer ni encoger */
+  min-width:0;
+}
+.f-dia{width:32px !important;padding-left:10px !important}
+.f-sep{color:var(--fg-sub);font-weight:700;font-size:16px;flex:none;user-select:none;padding:0 2px}
+.f-mes{width:32px !important}
+.f-anio{width:64px !important;padding-right:8px !important}
+.fecha-cal-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:46px;height:46px;flex:none;
+  background:var(--bg-input);border:1.5px solid var(--border);border-radius:12px;
+  cursor:pointer;color:var(--fg-sub);
+  -webkit-tap-highlight-color:transparent;transition:border-color 0.15s,color 0.15s;
+}
+.fecha-cal-btn:hover{color:var(--coral);border-color:var(--coral)}
+input[type="date"].fecha-hidden{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;top:0;right:0}
+
+/* ── CHIP EDAD ── */
+.age-chip{display:inline-flex;align-items:center;background:var(--coral-dim);color:var(--coral);font-size:12px;font-weight:700;border-radius:100px;padding:4px 12px;margin-top:8px}
+
+/* ── BOTÓN ── */
+.btn-calc{display:block;width:100%;margin-top:20px;background:var(--coral);color:white;font-family:inherit;font-size:17px;font-weight:800;border:none;border-radius:14px;padding:17px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity 0.15s,transform 0.1s}
+.btn-calc:active{opacity:0.85;transform:scale(0.98)}
+
+/* ── RESULTADOS ── */
+.results{margin-top:22px}
+.results-hdr{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+.results-hdr-title{font-size:15px;font-weight:700}
+.results-hdr-sub{font-size:12px;color:var(--fg-sub)}
+
+.result-card{background:var(--snow);border:1.5px solid var(--border);border-radius:18px;padding:18px;margin-bottom:12px}
+.result-card.best{background:var(--teal);border-color:var(--teal)}
+
+/* chip "Mayor compra" — en flujo normal, NO absoluto */
+.best-chip{
+  display:none;
+  background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);
+  font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  border-radius:100px;padding:3px 10px;
+  margin-bottom:8px; /* espacio debajo antes del plazo */
+}
+.result-card.best .best-chip{display:inline-block}
+
+.rc-plazo{font-size:11.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-sub);margin-bottom:6px}
+.result-card.best .rc-plazo{color:rgba(255,255,255,0.5)}
+.rc-pvp{font-size:38px;font-weight:800;letter-spacing:-2px;line-height:1;color:var(--coral);font-variant-numeric:tabular-nums}
+.result-card.best .rc-pvp{color:var(--sun)}
+.rc-pvp-lbl{font-size:11px;font-weight:600;color:var(--fg-sub);margin-bottom:14px;margin-top:2px}
+.result-card.best .rc-pvp-lbl{color:rgba(255,255,255,0.45)}
+.rc-details{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--border);padding-top:12px}
+.result-card.best .rc-details{border-color:rgba(255,255,255,0.12)}
+.rc-det-lbl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--fg-sub);margin-bottom:3px}
+.result-card.best .rc-det-lbl{color:rgba(255,255,255,0.4)}
+.rc-det-val{font-size:16px;font-weight:700;color:var(--fg);font-variant-numeric:tabular-nums}
+.result-card.best .rc-det-val{color:white}
+.limit-tag{display:inline-block;font-size:10.5px;font-weight:700;border-radius:100px;padding:3px 10px;margin-top:10px}
+.limit-tag.cupo{background:var(--sun-dim);color:var(--warn-fg)}
+.limit-tag.cuota{background:var(--coral-dim);color:var(--coral)}
+.result-card.best .limit-tag.cupo{background:rgba(255,184,48,0.22);color:var(--sun)}
+.result-card.best .limit-tag.cuota{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8)}
+
+/* ── INFO BOX ── */
+.info-box{border-radius:14px;padding:13px 15px;font-size:13px;font-weight:500;line-height:1.5;margin-bottom:14px;display:flex;gap:10px}
+.info-box.warn{background:var(--warn-bg);color:var(--warn-fg)}
+.info-box.error{background:var(--err-bg);color:var(--err-fg)}
+.info-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 16px;color:var(--fg-sub)}
+.empty-icon{font-size:44px;opacity:0.35;margin-bottom:10px}
+.empty-txt{font-size:14px;font-weight:500;line-height:1.5}
+
+/* ── FOOTER ── */
+.app-footer{text-align:center;padding:20px 0 12px;font-size:11px;color:var(--fg-sub);line-height:1.6}
+
+</style>
+</head>
+<body>
+
+<div class="app-wrap">
+
+  <header class="app-header">
+    <div class="logo-mark">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M5 3L5 21" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <path d="M5 12L17 3" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <path d="M5 12L17 21" stroke="white" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="logo-word">kotta</div>
+    <div class="header-sep"></div>
+    <div class="header-title">Calculadora de compra</div>
+    <div class="header-ver">v1.0</div>
+  </header>
+
+  <div class="intro">
+    Ingresa la cuota mensual máxima del cliente y su fecha de nacimiento para conocer el <strong>precio máximo de compra (PVP)</strong> que puede financiar en cada plazo disponible.
+  </div>
+
+  <div class="form-card">
+    <div class="form-title">Datos del cliente</div>
+
+    <div class="field">
+      <label for="cuota">Cuota mensual máxima disponible</label>
+      <div class="field-hint">Cuota máxima disponible asignada al cliente en la plataforma de crédito</div>
+      <div class="input-wrap">
+        <span class="pfx">$</span>
+        <input type="number" id="cuota" inputmode="decimal" placeholder="0.00"
+               class="with-pfx" min="0.01" step="0.01" autocomplete="off">
+      </div>
+      <div class="field-err" id="err-cuota" hidden></div>
+    </div>
+
+    <div class="field">
+      <label>Fecha de nacimiento</label>
+      <div class="field-hint">Digita día, mes y año — o toca el calendario</div>
+      <div class="fecha-outer">
+        <div class="fecha-box" id="fecha-box">
+          <input type="text" id="f-dia" class="f-dia" inputmode="numeric"
+                 placeholder="DD" maxlength="2" size="2" autocomplete="off">
+          <span class="f-sep">/</span>
+          <input type="text" id="f-mes" class="f-mes" inputmode="numeric"
+                 placeholder="MM" maxlength="2" size="2" autocomplete="off">
+          <span class="f-sep">/</span>
+          <input type="text" id="f-anio" class="f-anio" inputmode="numeric"
+                 placeholder="AAAA" maxlength="4" size="4" autocomplete="off">
+        </div>
+        <button type="button" class="fecha-cal-btn" onclick="abrirCalendario()" title="Abrir calendario">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </button>
+        <input type="date" id="nacimiento-cal" class="fecha-hidden" autocomplete="off">
+      </div>
+      <div id="age-display" hidden>
+        <div class="age-chip" id="age-text"></div>
+      </div>
+      <div class="field-err" id="err-nacimiento" hidden></div>
+    </div>
+
+    <button class="btn-calc" onclick="calcular()">Calcular capacidad de compra</button>
+  </div>
+
+  <div class="results" id="results">
+    <div class="empty" id="empty-state">
+      <div class="empty-icon">🛒</div>
+      <div class="empty-txt">Ingresa los datos del cliente<br>para ver los plazos disponibles</div>
+    </div>
+    <div id="results-content" hidden></div>
+  </div>
+
+  <footer class="app-footer">
+    Herramienta interna · Kotta S.A.S. · Valores referenciales<br>
+    Sujeto a aprobación en la plataforma de crédito
+  </footer>
+
+</div>
+
+<script>
+/* ── MALLA ── */
+const MALLA = [
+  { min:19, max:21, plazoMax:12,  cupoMax:600,  warn:true  },
+  { min:22, max:25, plazoMax:18,  cupoMax:1100, warn:true  },
+  { min:26, max:35, plazoMax:24,  cupoMax:2500, warn:false },
+  { min:36, max:45, plazoMax:24,  cupoMax:2700, warn:false },
+  { min:46, max:55, plazoMax:24,  cupoMax:2700, warn:false },
+  { min:56, max:65, plazoMax:24,  cupoMax:2500, warn:false },
+  { min:66, max:75, plazoMax:24,  cupoMax:1100, warn:true  },
+];
+const TASA_ANUAL = 15.60;
+
+/* ── FÓRMULA FRANCESA ── */
+function calcFrench(cuotaMax, n, cupoMax) {
+  const r = TASA_ANUAL / 100 / 12;
+  const factor = (1 - Math.pow(1+r,-n)) / r;
+  const pvpDesdeCuota = cuotaMax * factor;
+  const pvpDesdeCupo  = cupoMax  * factor;
+  let pvp, limitadoPor;
+  if (pvpDesdeCuota <= pvpDesdeCupo) { pvp = pvpDesdeCuota; limitadoPor = 'cuota'; }
+  else                                { pvp = pvpDesdeCupo;  limitadoPor = 'cupo';  }
+  pvp = Math.floor(pvp * 100) / 100;
+  const cuotaReal = pvp / factor;
+  const credTotal = Math.ceil(cuotaReal * n * 100) / 100;
+  const cuotaShow = Math.ceil(cuotaReal * 100) / 100;
+  return { pvp, cuota:cuotaShow, credTotal, limitadoPor,
+           valido: pvp > 0.01 && cuotaReal <= cuotaMax + 0.005 };
+}
+
+/* ── UTILS ── */
+function fmt(n) {
+  return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function getEdad(dia, mes, anio) {
+  const hoy = new Date();
+  let e = hoy.getFullYear() - anio;
+  const m = hoy.getMonth()+1 - mes;
+  if (m < 0 || (m===0 && hoy.getDate() < dia)) e--;
+  return e;
+}
+function getFila(edad) { return MALLA.find(f => edad >= f.min && edad <= f.max) || null; }
+function fechaValida(dia, mes, anio) {
+  if (!dia||!mes||!anio||anio<1900||anio>2100) return false;
+  const d = new Date(anio, mes-1, dia);
+  return d.getFullYear()===anio && d.getMonth()===mes-1 && d.getDate()===dia;
+}
+
+/* ── FECHA: tres inputs independientes con auto-avance ── */
+const fAnio = document.getElementById('f-anio');
+const fMes  = document.getElementById('f-mes');
+const fDia  = document.getElementById('f-dia');
+const calNac = document.getElementById('nacimiento-cal');
+
+function limitarInput(el, maxLen, nextEl) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length > maxLen) v = v.slice(0, maxLen);
+  el.value = v;
+  if (v.length === maxLen && nextEl) nextEl.focus();
+}
+
+// Orden DD/MM/AAAA: dia → mes → anio
+fDia.addEventListener('input', function() {
+  limitarInput(this, 2, fMes);
+  actualizarEdad(); if (hasCalculated) calcular();
+});
+fMes.addEventListener('input', function() {
+  limitarInput(this, 2, fAnio);
+  actualizarEdad(); if (hasCalculated) calcular();
+});
+fAnio.addEventListener('input', function() {
+  limitarInput(this, 4, null);
+  actualizarEdad(); if (hasCalculated) calcular();
+});
+
+// Backspace: AAAA←MM←DD
+fMes.addEventListener('keydown', function(e) {
+  if (e.key==='Backspace' && this.value==='') fDia.focus();
+});
+fAnio.addEventListener('keydown', function(e) {
+  if (e.key==='Backspace' && this.value==='') fMes.focus();
+});
+
+calNac.addEventListener('change', function() {
+  if (!this.value) return;
+  const [y,m,d] = this.value.split('-');
+  fDia.value = d; fMes.value = m; fAnio.value = y;
+  actualizarEdad(); if (hasCalculated) calcular();
+});
+function abrirCalendario() {
+  calNac.showPicker ? calNac.showPicker() : calNac.click();
+}
+
+/* ── EDAD LIVE ── */
+function actualizarEdad() {
+  const dia  = parseInt(fDia.value);
+  const mes  = parseInt(fMes.value);
+  const anio = parseInt(fAnio.value);
+  const ageDiv = document.getElementById('age-display');
+  const ageTxt = document.getElementById('age-text');
+  if (!fechaValida(dia,mes,anio)) { ageDiv.hidden=true; return; }
+  if (new Date(anio,mes-1,dia) > new Date()) { ageDiv.hidden=true; return; }
+  const edad = getEdad(dia,mes,anio);
+  if (edad < 0) { ageDiv.hidden=true; return; }
+  ageTxt.textContent = edad + ' años';
+  ageDiv.hidden = false;
+}
+
+document.getElementById('cuota').addEventListener('input', () => {
+  if (hasCalculated) calcular();
+});
+
+/* ── VALIDACIÓN ── */
+let hasCalculated = false;
+
+function clearErrors() {
+  ['err-cuota','err-nacimiento'].forEach(id => {
+    const el = document.getElementById(id);
+    el.hidden=true; el.textContent='';
+  });
+  document.getElementById('cuota').classList.remove('err');
+  document.getElementById('fecha-box').classList.remove('err');
+}
+function showErr(field, msg) {
+  const el = document.getElementById('err-'+field);
+  el.textContent=msg; el.hidden=false;
+  if (field==='cuota') document.getElementById('cuota').classList.add('err');
+  else document.getElementById('fecha-box').classList.add('err');
+}
+
+/* ── CÁLCULO ── */
+function calcular() {
+  clearErrors();
+  const cuotaVal = parseFloat(document.getElementById('cuota').value);
+  const dia  = parseInt(fDia.value);
+  const mes  = parseInt(fMes.value);
+  const anio = parseInt(fAnio.value);
+  let ok = true;
+
+  if (!cuotaVal || isNaN(cuotaVal) || cuotaVal <= 0) {
+    showErr('cuota','Ingresa una cuota mayor a $0'); ok=false;
+  }
+  if (!fechaValida(dia,mes,anio)) {
+    showErr('nacimiento','Ingresa una fecha válida'); ok=false;
+  } else if (new Date(anio,mes-1,dia) > new Date()) {
+    showErr('nacimiento','La fecha no puede ser futura'); ok=false;
+  } else {
+    const edad = getEdad(dia,mes,anio);
+    if (edad < 19 || edad > 75) {
+      showErr('nacimiento',`Edad: ${edad} años. La malla cubre de 19 a 75 años.`); ok=false;
+    }
+  }
+  if (!ok) { renderResults(null,null,null); return; }
+
+  hasCalculated = true;
+  const edad = getEdad(dia,mes,anio);
+  const fila = getFila(edad);
+  if (!fila) { renderResults(null,edad,null); return; }
+
+  const plazos = [];
+  for (let p=fila.plazoMax; p>=6; p-=6) plazos.push(p);
+
+  const resultados = plazos
+    .map(n => ({plazo:n, ...calcFrench(cuotaVal,n,fila.cupoMax)}))
+    .filter(r => r.valido && r.pvp>0);
+
+  renderResults(resultados, edad, fila);
+}
+
+/* ── RENDER ── */
+function renderResults(resultados, edad, fila) {
+  const content = document.getElementById('results-content');
+  const empty   = document.getElementById('empty-state');
+  if (!resultados) { content.hidden=true; empty.hidden=false; return; }
+  empty.hidden=true; content.hidden=false;
+
+  if (resultados.length===0) {
+    content.innerHTML=`<div class="info-box error"><span class="info-icon">⚠️</span>
+      <span>Con la cuota ingresada no es posible estructurar ningún plazo para un cliente de ${edad} años. Verifica la cuota en la plataforma.</span></div>`;
+    return;
+  }
+
+  const bestIdx = resultados.reduce((bi,r,i)=> r.pvp>resultados[bi].pvp ? i : bi, 0);
+
+  let html = `<div class="results-hdr">
+    <div class="results-hdr-title">Plazos disponibles · ${edad} años</div>
+    <div class="results-hdr-sub">${resultados.length} opción${resultados.length!==1?'es':''}</div>
+  </div>`;
+
+  html += `<div class="result-cards-grid">`;
+  resultados.forEach((r,i) => {
+    const best = i===bestIdx;
+    const ltag = r.limitadoPor==='cupo'
+      ? `<span class="limit-tag cupo">Limitado por cupo malla</span>`
+      : `<span class="limit-tag cuota">Limitado por cuota</span>`;
+    html += `<div class="result-card${best?' best':''}">
+      <div class="best-chip">⭐ Mayor compra</div>
+      <div class="rc-plazo">${r.plazo} meses de plazo</div>
+      <div class="rc-pvp">${fmt(r.pvp)}</div>
+      <div class="rc-pvp-lbl">PVP máximo del producto</div>
+      <div class="rc-details">
+        <div><div class="rc-det-lbl">Cuota estimada</div><div class="rc-det-val">${fmt(r.cuota)}/mes</div></div>
+        <div><div class="rc-det-lbl">Crédito total</div><div class="rc-det-val">${fmt(r.credTotal)}</div></div>
+      </div>
+      ${ltag}
+    </div>`;
+  });
+  html += `</div>`;
+
+  content.innerHTML = html;
+}
+</script>
+</body>
+</html>
